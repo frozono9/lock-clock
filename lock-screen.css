@@ -110,3 +110,8 @@
 .scene[data-font=thin] .lock-time {
   font-weight: 200;
 }
+
+/* A loaded font file takes precedence over every platform fallback. */
+.scene[data-font=serif][data-imported-font] .lock-time {
+  font-family: 'Clock Imported Serif';
+}

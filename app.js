@@ -1,5 +1,7 @@
 import { shiftedDate, clockText, dateText } from './clock.js';
 import { renderClock } from './clock-display.js';
+import { storedAsset } from './local-assets.js';
+import { restoreFont, importFont, removeFont } from './local-font.js';
 const $ = id => document.getElementById(id);
 const defaults = { version: 2, position: 13.584518, size: 25.641026, datePosition: 10.505529, font: 'serif', colour: '#ffffff', showDate: true, hour12: false };
 let appearance = { ...defaults };
@@ -15,6 +17,7 @@ try {
 } catch {}
 let digit = null, direction = 1, activeDigit = 0, showing = false, timer, holdTimer, holdPoint, wakeLock, customURL;
 const scene = $('scene');
+let fontRestoreFailed = false;
 function saveAppearance() { try { localStorage.setItem('clock-appearance', JSON.stringify(appearance)); } catch { $('image-status').textContent = 'Settings could not be saved on this device.'; } }
 function applyAppearance() {
   scene.style.setProperty('--clock-top', `${appearance.position}%`);
@@ -41,6 +44,14 @@ async function start(value) {
   if (!matchMedia('(display-mode: standalone)').matches && !document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
   // Do not expose the original screenshot's old text while its repair is loading.
   await backgroundReady;
+  await fontReady;
+  if (appearance.font === 'serif' && fontRestoreFailed) {
+    stop();
+    $('settings').hidden = false;
+    $('settings-toggle').setAttribute('aria-expanded', 'true');
+    $('font-file').focus();
+    return;
+  }
   await Promise.all([...scene.querySelectorAll('img')].map(img => img.decode().catch(() => {})));
   await document.fonts.ready;
   activeDigit = value; showing = true;
@@ -70,16 +81,7 @@ for (const [id,key] of [['position','position'],['size','size'],['date-position'
   appearance[key] = event.target.type === 'checkbox' ? event.target.checked : event.target.type === 'range' ? Number(event.target.value) : event.target.value;
   saveAppearance(); applyAppearance();
 });
-// IndexedDB stores the original imported blob, including when the app is offline.
-function imageDB() { return new Promise((resolve,reject) => { const request = indexedDB.open('clock-local',1); request.onupgradeneeded = () => request.result.createObjectStore('images'); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); }); }
-async function imageStore(mode, value) {
-  const db = await imageDB();
-  return new Promise((resolve,reject) => {
-    const tx = db.transaction('images', mode === 'get' ? 'readonly' : 'readwrite'); const store = tx.objectStore('images');
-    const request = mode === 'get' ? store.get('background') : mode === 'delete' ? store.delete('background') : store.put(value,'background');
-    tx.oncomplete = () => { resolve(request.result); db.close(); }; tx.onerror = tx.onabort = () => { reject(tx.error); db.close(); };
-  });
-}
+function imageStore(mode, value) { return storedAsset('background', mode, value); }
 async function useImage(blob) {
   const url = URL.createObjectURL(blob); const probe = new Image();
   try { probe.src = url; await probe.decode(); } catch { URL.revokeObjectURL(url); throw new Error('Cannot read this image. Try a JPEG or PNG.'); }
@@ -99,6 +101,28 @@ $('default-background').addEventListener('click', async () => {
   try { await imageStore('delete'); if (customURL) URL.revokeObjectURL(customURL); customURL = null; $('wallpaper').src = './assets/reference-lock.jpg'; delete scene.dataset.customBackground; scene.style.width = ''; scene.style.height = ''; $('image-status').textContent = 'Included lock screen restored.'; } catch { $('image-status').textContent = 'Could not reset stored background.'; }
 });
 $('reset-reference').addEventListener('click', () => { appearance = { ...defaults }; saveAppearance(); applyAppearance(); $('image-status').textContent = 'Reference typography restored.'; });
+$('font-file').addEventListener('change', async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  $('font-status').textContent = 'Loading font…';
+  try {
+    await fontReady;
+    const name = await importFont(file, scene);
+    fontRestoreFailed = false;
+    appearance.font = 'serif'; saveAppearance(); applyAppearance();
+    $('font-status').textContent = `${name} loaded from file · saved offline on this device.`;
+  } catch {
+    $('font-status').textContent = 'Could not load or save that font. The previous font has been kept. Try a valid TTF, OTF, WOFF or WOFF2 file.';
+  } finally { event.target.value = ''; }
+});
+$('remove-font').addEventListener('click', async () => {
+  try {
+    await fontReady;
+    await removeFont(scene);
+    fontRestoreFailed = false;
+    $('font-status').textContent = 'Using the device’s serif font. Import NewYork.ttf to use a specific font file.';
+  } catch { $('font-status').textContent = 'Could not remove the saved font. Please try again.'; }
+});
 $('lock-screen').addEventListener('pointerdown', event => { if (!event.isPrimary) return; holdPoint = [event.clientX,event.clientY]; clearTimeout(holdTimer); holdTimer = setTimeout(stop, 1000); });
 $('lock-screen').addEventListener('pointermove', event => { if (holdPoint && Math.hypot(event.clientX - holdPoint[0], event.clientY - holdPoint[1]) > 15) clearTimeout(holdTimer); });
 for (const name of ['pointerup','pointercancel','contextmenu']) $('lock-screen').addEventListener(name, event => { clearTimeout(holdTimer); if (name === 'contextmenu') event.preventDefault(); });
@@ -111,6 +135,12 @@ document.addEventListener('keydown', event => {
 document.addEventListener('visibilitychange', () => { if (!document.hidden && showing) { render(); keepAwake(); } });
 applyAppearance();
 const backgroundReady = imageStore('get').then(blob => { if (blob) return useImage(blob); }).catch(() => {});
+const fontReady = restoreFont(scene).then(name => {
+  if (name) $('font-status').textContent = `${name} loaded from file · saved offline on this device.`;
+}).catch(() => {
+  fontRestoreFailed = true;
+  $('font-status').textContent = 'Saved font could not be restored. Reimport it or choose “Use device font instead” before performing.';
+});
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').then(() => navigator.serviceWorker.ready).then(() => { $('offline-status').textContent = 'Ready offline · saved on this device'; }).catch(() => { $('offline-status').textContent = 'Offline setup failed. Reopen online to retry.'; });
 } else $('offline-status').textContent = 'Offline mode requires HTTPS or localhost.';
