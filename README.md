@@ -26,6 +26,8 @@ For visual checking, open `qa/reference.html` in Safari. It uses the same styles
 
 The service worker precaches every runtime asset, including the default background and icons. After the first successful online load the app can reopen offline. Browser storage can be cleared or evicted; check the ready message before performing. Updates wait for existing app windows to close, so they do not replace assets mid-performance. Bump the cache version in `sw.js` whenever runtime files change.
 
+If a browser keeps opening an older cached version, open `update.html` and select **Install latest version** between performances. This explicitly checks for an update and activates it without clearing IndexedDB or saved settings.
+
 ## Development
 
 No installation or build step:
