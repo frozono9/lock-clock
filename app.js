@@ -15,7 +15,7 @@ try {
   }
   appearance = { ...defaults, ...saved, version: defaults.version };
 } catch {}
-let digit = null, activeDigit = 0, showing = false, timer, holdTimer, holdPoint, wakeLock, customURL;
+let digit = null, activeDigit = 0, showing = false, timer, holdTimer, press, wakeLock, customURL;
 const scene = $('scene');
 let fontRestoreFailed = false;
 function saveAppearance() { try { localStorage.setItem('clock-appearance', JSON.stringify(appearance)); } catch { $('image-status').textContent = 'Settings could not be saved on this device.'; } }
@@ -42,7 +42,7 @@ async function keepAwake() { if (showing && !document.hidden) { try { wakeLock =
 async function start(value) {
   // The fullscreen request must occur synchronously inside the tap gesture.
   if (!window.CLOCK_NATIVE && !matchMedia('(display-mode: standalone)').matches && !document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
-  // Do not expose the original screenshot's old text while its repair is loading.
+  // Load the chosen wallpaper and font before revealing the lock screen.
   await backgroundReady;
   await fontReady;
   if (appearance.font === 'serif' && fontRestoreFailed) {
@@ -55,13 +55,15 @@ async function start(value) {
   await Promise.all([...scene.querySelectorAll('img')].map(img => img.decode().catch(() => {})));
   await document.fonts.ready;
   activeDigit = value; showing = true;
+  press = null;
+  scene.dataset.phase = value > 0 ? 'ahead' : 'preview';
   $('settings').hidden = true; $('settings-toggle').setAttribute('aria-expanded', 'false');
   $('setup').hidden = true; $('lock-screen').hidden = false;
   applyAppearance(); render(); clearInterval(timer); timer = setInterval(render, 200);
   keepAwake();
 }
 function stop() {
-  showing = false; clearInterval(timer); clearTimeout(holdTimer);
+  showing = false; press = null; clearInterval(timer); clearTimeout(holdTimer);
   $('setup').hidden = false; $('lock-screen').hidden = true;
   wakeLock?.release().catch(() => {}); wakeLock = null;
   if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
@@ -119,9 +121,35 @@ $('remove-font').addEventListener('click', async () => {
     $('font-status').textContent = 'Using the device’s serif font. Import NewYork.ttf to use a specific font file.';
   } catch { $('font-status').textContent = 'Could not remove the saved font. Please try again.'; }
 });
-$('lock-screen').addEventListener('pointerdown', event => { if (!event.isPrimary) return; holdPoint = [event.clientX,event.clientY]; clearTimeout(holdTimer); holdTimer = setTimeout(stop, 1000); });
-$('lock-screen').addEventListener('pointermove', event => { if (holdPoint && Math.hypot(event.clientX - holdPoint[0], event.clientY - holdPoint[1]) > 15) clearTimeout(holdTimer); });
-for (const name of ['pointerup','pointercancel','contextmenu']) $('lock-screen').addEventListener(name, event => { clearTimeout(holdTimer); if (name === 'contextmenu') event.preventDefault(); });
+$('lock-screen').addEventListener('pointerdown', event => {
+  if (!event.isPrimary || event.button !== 0 || !showing) return;
+  press = { id: event.pointerId, x: event.clientX, y: event.clientY, started: performance.now(), moved: false };
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+  clearTimeout(holdTimer);
+  holdTimer = setTimeout(stop, 1000);
+});
+$('lock-screen').addEventListener('pointermove', event => {
+  if (press?.id === event.pointerId && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 15) {
+    press.moved = true;
+    clearTimeout(holdTimer);
+  }
+});
+$('lock-screen').addEventListener('pointerup', event => {
+  clearTimeout(holdTimer);
+  const released = press;
+  press = null;
+  if (!showing || !released || released.id !== event.pointerId || released.moved || performance.now() - released.started > 600) return;
+  // One trigger per presentation: start ahead, then jump back to real time.
+  if (activeDigit > 0) {
+    activeDigit = 0;
+    scene.dataset.phase = 'real';
+    render();
+  }
+});
+for (const name of ['pointercancel','lostpointercapture']) $('lock-screen').addEventListener(name, () => {
+  clearTimeout(holdTimer); press = null;
+});
+$('lock-screen').addEventListener('contextmenu', event => event.preventDefault());
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') { stop(); $('settings').hidden = true; }
   if (showing || !$('settings').hidden || /INPUT|SELECT|TEXTAREA/.test(event.target.tagName)) return;

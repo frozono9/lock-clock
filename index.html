@@ -17,9 +17,9 @@
 <body>
   <main id="setup" class="setup">
     <header><span class="brand">◷ CLOCK</span><button id="settings-toggle" class="subtle" aria-expanded="false">Appearance</button></header>
-    <section class="intro"><p class="eyebrow">BACK IN TIME</p><h1>How far<br>back?</h1><p>Choose 1–9 minutes.</p></section>
+    <section class="intro"><p class="eyebrow">SET THE CLOCK</p><h1>Minutes<br>ahead.</h1><p>Choose 1–9. Tap the lock screen to return to real time.</p></section>
     <section class="entry" aria-label="Time offset">
-      <div class="selection"><output id="digit" aria-live="polite">—</output><span>minutes back</span></div>
+      <div class="selection"><output id="digit" aria-live="polite">—</output><span>minutes ahead</span></div>
       <div class="keypad" aria-label="Choose one digit from 1 to 9">
         <button data-digit="1">1</button><button data-digit="2">2</button><button data-digit="3">3</button>
         <button data-digit="4">4</button><button data-digit="5">5</button><button data-digit="6">6</button>
@@ -27,7 +27,7 @@
       </div>
       <button id="perform" class="primary" disabled>Show lock screen <span>↗</span></button>
     </section>
-    <footer><span id="offline-status" role="status">Preparing offline mode…</span><p>Hold the lock screen for 1 second to return.</p><p id="ios-status-note" hidden>iOS can keep its real system clock visible above a web app. A native fullscreen viewer is needed to hide it reliably.</p><a class="subtle" href="./update.html">Check for updates</a></footer>
+    <footer><span id="offline-status" role="status">Preparing offline mode…</span><p>Tap once to jump back to real time.<br>Hold for 1 second to return to the keypad.</p><p id="ios-status-note" hidden>iOS can keep its real system clock visible above a web app. A native fullscreen viewer is needed to hide it reliably.</p><a class="subtle" href="./update.html">Check for updates</a></footer>
     <section id="settings" class="settings" hidden aria-label="Appearance settings">
       <div class="settings-title"><h2>Make it yours.</h2><button id="close-settings" class="subtle">Done</button></div>
       <p>Choose your wallpaper. The clock, date and bottom controls are drawn separately. Your photo stays on this device.</p>

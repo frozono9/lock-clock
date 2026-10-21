@@ -1,6 +1,6 @@
 # Clock
 
-An offline clock performance app with a personal wallpaper. Select one digit (1–9) and the displayed local time is **real device time minus that many minutes**. Forward travel is not available.
+An offline clock performance app with a personal wallpaper. Select one digit (1–9) to preset the clock **ahead** of real local time by that many minutes. A short tap on the lock screen then jumps backward to the real time and continues ticking normally. For example, at 18:38, choosing 3 shows 18:41; tapping the lock screen returns it to 18:38.
 
 ## Choose your wallpaper
 
@@ -10,7 +10,7 @@ The photo fills the available viewport while the overlay layout stays independen
 
 ## Use
 
-Choose 1–9, then **Show lock screen**. Another digit replaces the selection. Hold still anywhere for one second to return. The clock continues to tick and its date rolls backward across midnight. Appearance includes clock position, size, colour, font, date visibility and a real-time appearance preview.
+Choose 1–9, then **Show lock screen**. Another digit replaces the selection. The screen initially runs ahead. Tap once to jump back to the current real time; further taps leave it at real time. Hold still anywhere for one second to return to the keypad without triggering the jump. Drags and cancelled touches do not trigger. The date follows the displayed time, including midnight rollover. Appearance includes clock position, size, colour, font, date visibility and a real-time appearance preview.
 
 Wait for **Ready offline** on the first online visit. Wallpaper and font imports stay in IndexedDB, settings in localStorage. No uploads are made. Browser storage can be cleared or evicted; keep a copy of your wallpaper/font.
 

@@ -1,6 +1,6 @@
 # Native fullscreen viewer
 
-This container runs the same wallpaper picker, saved settings, font importer and backward-only clock as the website. It bundles the web assets and serves them on a loopback-only server, so it does not need internet access, GitHub Pages or a service worker. UIKit requests a hidden status bar, automatic home-indicator hiding and a view extending to the physical screen edges. iOS may temporarily show the home indicator during system gestures.
+This container runs the same wallpaper picker, saved settings, font importer and clock (preset ahead, then tap to jump back to real time) as the website. It bundles the web assets and serves them on a loopback-only server, so it does not need internet access, GitHub Pages or a service worker. UIKit requests a hidden status bar, automatic home-indicator hiding and a view extending to the physical screen edges. iOS may temporarily show the home indicator during system gestures.
 
 ## Install on your iPhone
 
