@@ -1,0 +1,4 @@
+/ios/Web/
+/ios/build/
+*.xcuserstate
+xcuserdata/

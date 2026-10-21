@@ -17,24 +17,24 @@
 <body>
   <main id="setup" class="setup">
     <header><span class="brand">◷ CLOCK</span><button id="settings-toggle" class="subtle" aria-expanded="false">Appearance</button></header>
-    <section class="intro"><p class="eyebrow">A LITTLE AHEAD OF TIME</p><h1>Choose your<br>next minute.</h1><p>One digit. A different time.</p></section>
+    <section class="intro"><p class="eyebrow">BACK IN TIME</p><h1>How far<br>back?</h1><p>Choose 1–9 minutes.</p></section>
     <section class="entry" aria-label="Time offset">
-      <div class="direction" role="group" aria-label="Travel direction"><button id="forward" aria-pressed="true">Forward +</button><button id="backward" aria-pressed="false">Backward −</button></div>
-      <div class="selection"><output id="digit" aria-live="polite">—</output><span>minutes</span></div>
+      <div class="selection"><output id="digit" aria-live="polite">—</output><span>minutes back</span></div>
       <div class="keypad" aria-label="Choose one digit from 1 to 9">
         <button data-digit="1">1</button><button data-digit="2">2</button><button data-digit="3">3</button>
         <button data-digit="4">4</button><button data-digit="5">5</button><button data-digit="6">6</button>
         <button data-digit="7">7</button><button data-digit="8">8</button><button data-digit="9">9</button>
       </div>
       <button id="perform" class="primary" disabled>Show lock screen <span>↗</span></button>
-      <button id="real-time" class="subtle baseline">Preview real time</button>
     </section>
-    <footer><span id="offline-status" role="status">Preparing offline mode…</span><p>Hold the lock screen for 1 second to return.</p><p>On iPhone: Safari → Share → Add to Home Screen → Open as Web App.</p><a class="subtle" href="./update.html">Check for updates</a></footer>
+    <footer><span id="offline-status" role="status">Preparing offline mode…</span><p>Hold the lock screen for 1 second to return.</p><p id="ios-status-note" hidden>iOS can keep its real system clock visible above a web app. A native fullscreen viewer is needed to hide it reliably.</p><a class="subtle" href="./update.html">Check for updates</a></footer>
     <section id="settings" class="settings" hidden aria-label="Appearance settings">
       <div class="settings-title"><h2>Make it yours.</h2><button id="close-settings" class="subtle">Done</button></div>
-      <p>Use a wallpaper or a screenshot with its old clock and date removed. Images stay on this device.</p>
-      <label class="file-label">Import background<input id="background-file" type="file" accept="image/*"></label>
-      <button id="default-background" class="subtle">Use included lock screen</button>
+      <p>Choose your wallpaper. The clock, date and bottom controls are drawn separately. Your photo stays on this device.</p>
+      <label class="file-label">Choose wallpaper<input id="background-file" type="file" accept="image/*"></label>
+      <p id="image-status" role="status"></p>
+      <div class="wallpaper-preview"><img id="wallpaper-preview" src="./assets/mountain-wallpaper.png" alt="Selected wallpaper"></div>
+      <button id="default-background" class="subtle">Use mountain wallpaper</button>
       <button id="reset-reference" class="subtle">Restore reference typography</button>
       <label>Clock position <output id="position-value"></output><input id="position" type="range" min="3" max="65" step="0.1"></label>
       <label>Clock size <output id="size-value"></output><input id="size" type="range" min="12" max="34" step="0.1"></label>
@@ -47,12 +47,18 @@
       <label>Text colour<input id="colour" type="color" value="#ffffff"></label>
       <label class="check"><input id="show-date" type="checkbox">Show live date</label>
       <label class="check"><input id="hour12" type="checkbox">12-hour clock</label>
-      <p id="image-status" role="status"></p>
       <button id="preview" class="primary">Preview appearance <span>↗</span></button>
     </section>
   </main>
   <section id="lock-screen" hidden aria-label="Lock screen clock">
-    <div id="scene" class="scene"><img id="wallpaper" src="./assets/reference-lock.jpg" alt="" draggable="false"><img class="clock-repair" src="./assets/lock-background.png" alt="" draggable="false"><p id="lock-date" class="lock-date"></p><p id="lock-time" class="lock-time"></p></div>
+    <div id="scene" class="scene">
+      <img id="wallpaper" src="./assets/mountain-wallpaper.png" alt="" draggable="false">
+      <p id="lock-date" class="lock-date"></p><p id="lock-time" class="lock-time"></p>
+      <div class="lock-controls" aria-hidden="true">
+        <div class="lock-control"><svg viewBox="0 0 48 48"><path fill="currentColor" d="M15 5h18a2 2 0 0 1 2 2v3H13V7a2 2 0 0 1 2-2Zm-2 8h22l-5 9v18a3 3 0 0 1-3 3h-6a3 3 0 0 1-3-3V22l-5-9Z"/><rect x="22" y="24" width="4" height="10" rx="2" fill="#292929"/></svg></div>
+        <div class="lock-control"><svg viewBox="0 0 48 48"><path fill="currentColor" d="M16 10 19 5h10l3 5h7a5 5 0 0 1 5 5v22a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V15a5 5 0 0 1 5-5h7Z"/><circle cx="24" cy="25" r="10" fill="#292929"/><circle cx="24" cy="25" r="6.5" fill="currentColor"/><circle cx="36" cy="16" r="2" fill="#292929"/></svg></div>
+      </div>
+    </div>
   </section>
   <script type="module" src="./app.js"></script>
 </body>

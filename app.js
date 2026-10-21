@@ -15,7 +15,7 @@ try {
   }
   appearance = { ...defaults, ...saved, version: defaults.version };
 } catch {}
-let digit = null, direction = 1, activeDigit = 0, showing = false, timer, holdTimer, holdPoint, wakeLock, customURL;
+let digit = null, activeDigit = 0, showing = false, timer, holdTimer, holdPoint, wakeLock, customURL;
 const scene = $('scene');
 let fontRestoreFailed = false;
 function saveAppearance() { try { localStorage.setItem('clock-appearance', JSON.stringify(appearance)); } catch { $('image-status').textContent = 'Settings could not be saved on this device.'; } }
@@ -34,14 +34,14 @@ function applyAppearance() {
   $('show-date').checked = appearance.showDate; $('hour12').checked = appearance.hour12;
 }
 function render() {
-  const date = shiftedDate(Date.now(), activeDigit, direction);
+  const date = shiftedDate(Date.now(), activeDigit);
   renderClock($('lock-time'), clockText(date, appearance.hour12));
   $('lock-date').textContent = dateText(date);
 }
 async function keepAwake() { if (showing && !document.hidden) { try { wakeLock = await navigator.wakeLock?.request('screen'); } catch {} } }
 async function start(value) {
   // The fullscreen request must occur synchronously inside the tap gesture.
-  if (!matchMedia('(display-mode: standalone)').matches && !document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+  if (!window.CLOCK_NATIVE && !matchMedia('(display-mode: standalone)').matches && !document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
   // Do not expose the original screenshot's old text while its repair is loading.
   await backgroundReady;
   await fontReady;
@@ -71,9 +71,7 @@ function choose(value) {
   document.querySelectorAll('[data-digit]').forEach(button => { const selected = Number(button.dataset.digit) === value; button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected)); });
 }
 document.querySelectorAll('[data-digit]').forEach(button => button.addEventListener('click', () => choose(Number(button.dataset.digit))));
-for (const [id, sign] of [['forward',1],['backward',-1]]) $(id).addEventListener('click', () => { direction = sign; $('forward').setAttribute('aria-pressed', String(sign === 1)); $('backward').setAttribute('aria-pressed', String(sign === -1)); });
 $('perform').addEventListener('click', () => { if (digit !== null) start(digit); });
-$('real-time').addEventListener('click', () => start(0));
 $('preview').addEventListener('click', () => start(0));
 $('settings-toggle').addEventListener('click', () => { $('settings').hidden = false; $('settings-toggle').setAttribute('aria-expanded','true'); $('close-settings').focus(); });
 $('close-settings').addEventListener('click', () => { $('settings').hidden = true; $('settings-toggle').setAttribute('aria-expanded','false'); $('settings-toggle').focus(); });
@@ -81,24 +79,22 @@ for (const [id,key] of [['position','position'],['size','size'],['date-position'
   appearance[key] = event.target.type === 'checkbox' ? event.target.checked : event.target.type === 'range' ? Number(event.target.value) : event.target.value;
   saveAppearance(); applyAppearance();
 });
-function imageStore(mode, value) { return storedAsset('background', mode, value); }
+function imageStore(mode, value) { return storedAsset('wallpaper', mode, value); }
 async function useImage(blob) {
   const url = URL.createObjectURL(blob); const probe = new Image();
   try { probe.src = url; await probe.decode(); } catch { URL.revokeObjectURL(url); throw new Error('Cannot read this image. Try a JPEG or PNG.'); }
   if (customURL) URL.revokeObjectURL(customURL); customURL = url;
   $('wallpaper').src = url;
-  scene.dataset.customBackground = '';
-  const ratio = probe.naturalWidth / probe.naturalHeight;
-  scene.style.width = `max(100vw, ${ratio * 100}dvh)`;
-  scene.style.height = `max(100dvh, ${100 / ratio}vw)`;
+  $('wallpaper-preview').src = url;
 }
 $('background-file').addEventListener('change', async event => {
   const file = event.target.files[0]; if (!file) return;
-  try { await useImage(file); await imageStore('put',file); $('image-status').textContent = 'Background saved on this device.'; }
-  catch (error) { $('image-status').textContent = error.message || 'Could not save background.'; }
+  try { await useImage(file); await imageStore('put',file); $('image-status').textContent = 'Wallpaper saved on this device.'; }
+  catch (error) { $('image-status').textContent = error.message || 'Could not save wallpaper.'; }
+  finally { event.target.value = ''; }
 });
 $('default-background').addEventListener('click', async () => {
-  try { await imageStore('delete'); if (customURL) URL.revokeObjectURL(customURL); customURL = null; $('wallpaper').src = './assets/reference-lock.jpg'; delete scene.dataset.customBackground; scene.style.width = ''; scene.style.height = ''; $('image-status').textContent = 'Included lock screen restored.'; } catch { $('image-status').textContent = 'Could not reset stored background.'; }
+  try { await imageStore('delete'); if (customURL) URL.revokeObjectURL(customURL); customURL = null; $('wallpaper').src = './assets/mountain-wallpaper.png'; $('wallpaper-preview').src = './assets/mountain-wallpaper.png'; $('image-status').textContent = 'Mountain wallpaper restored.'; } catch { $('image-status').textContent = 'Could not reset stored wallpaper.'; }
 });
 $('reset-reference').addEventListener('click', () => { appearance = { ...defaults }; saveAppearance(); applyAppearance(); $('image-status').textContent = 'Reference typography restored.'; });
 $('font-file').addEventListener('change', async event => {
@@ -135,12 +131,17 @@ document.addEventListener('keydown', event => {
 document.addEventListener('visibilitychange', () => { if (!document.hidden && showing) { render(); keepAwake(); } });
 applyAppearance();
 const backgroundReady = imageStore('get').then(blob => { if (blob) return useImage(blob); }).catch(() => {});
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+$('ios-status-note').hidden = !isIOS || !!window.CLOCK_NATIVE;
 const fontReady = restoreFont(scene).then(name => {
   if (name) $('font-status').textContent = `${name} loaded from file · saved offline on this device.`;
 }).catch(() => {
   fontRestoreFailed = true;
   $('font-status').textContent = 'Saved font could not be restored. Reimport it or choose “Use device font instead” before performing.';
 });
-if ('serviceWorker' in navigator) {
+if (window.CLOCK_NATIVE) {
+  $('offline-status').textContent = 'Offline · stored on this iPhone';
+  document.querySelector('a[href="./update.html"]').hidden = true;
+} else if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').then(() => navigator.serviceWorker.ready).then(() => { $('offline-status').textContent = 'Ready offline · saved on this device'; }).catch(() => { $('offline-status').textContent = 'Offline setup failed. Reopen online to retry.'; });
 } else $('offline-status').textContent = 'Offline mode requires HTTPS or localhost.';

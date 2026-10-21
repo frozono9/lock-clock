@@ -1,44 +1,42 @@
 # Clock
 
-A buildless, offline PWA that looks like a personal lock screen. Select exactly one digit (1–9) as a minute offset, choose forward or backward, then show the clock. Tapping another digit replaces the selection. There is no zero or multi-digit input in performance mode.
+An offline clock performance app with a personal wallpaper. Select one digit (1–9) and the displayed local time is **real device time minus that many minutes**. Forward travel is not available.
 
-## On your phone
+## Choose your wallpaper
 
-Open the published URL online and wait for **Ready offline**. On iPhone, open in Safari, choose **Share → Add to Home Screen** and enable **Open as Web App** if offered. Launch from that icon for the browser-free presentation. Other browsers can use their Install app option or fullscreen where supported. Browser fullscreen availability and iOS status/home bars depend on the OS; this is a simulated lock screen, not the system lock screen.
+Open **Appearance → Choose wallpaper** and pick a normal wallpaper from Photos or Files. The selected image and its preview are saved on this device. The app draws the live clock, live date, and flashlight/camera control replicas over the image. Those controls are decorative; they do not launch the camera or torch.
 
-Choose a digit, then **Show lock screen**. Hold anywhere still for one second to return to the keypad. Escape also returns on a keyboard. Preview real time uses no offset. The clock is recomputed from the device time every 200 ms, including when returning from the background, and the date rolls over with the shifted time. It uses the phone's configured timezone and clock; it does not need GPS or an internet time server.
+The photo fills the available viewport while the overlay layout stays independent of the photo's aspect ratio. Changing wallpapers therefore cannot crop or reposition the clock and controls. The default is a cleaned mountain wallpaper derived from the supplied reference. Import your original wallpaper for the original photo's exact detail. Old screenshot backgrounds are retained in their old storage record but are not reused by the new wallpaper renderer.
 
-**Appearance** lets you import a JPEG/PNG or other browser-supported image, adjust clock/date position, font, text colour and size, and choose 12/24 hours. Imports are stored in local IndexedDB; appearance uses localStorage. Nothing is uploaded. Remove the old clock and date from screenshots before importing; this app does not automatically inpaint new screenshots. The included background is an edited copy of the supplied reference, with its original date and clock removed. Its carrier, battery, weather, and decorative buttons are static image details.
+## Use
 
-### Reference accuracy
+Choose 1–9, then **Show lock screen**. Another digit replaces the selection. Hold still anywhere for one second to return. The clock continues to tick and its date rolls backward across midnight. Appearance includes clock position, size, colour, font, date visibility and a real-time appearance preview.
 
-The default background now uses the original 1170 × 2532 JPEG directly. Only the date/clock regions receive a feathered repair layer; the mountain, widgets, status icons and bottom controls come from the original screenshot. A custom background hides that repair layer.
+Wait for **Ready offline** on the first online visit. Wallpaper and font imports stay in IndexedDB, settings in localStorage. No uploads are made. Browser storage can be cleared or evicted; keep a copy of your wallpaper/font.
 
-The serif clock requests Apple's native New York via `ui-serif`, using calibrated optical size, weight, proportional lining figures, separate hour/minute spacing and the centered-colon alternate (`ss01`). The live date uses the system sans face. No Apple font files are redistributed. The reference profile is calibrated for Safari on Apple platforms; Chromium and other platforms may select a different fallback. Existing unchanged v1 defaults migrate automatically; **Restore reference typography** also restores the measured profile.
+For an older cached release, open [the updater](https://frozono9.github.io/lock-clock/update.html) and choose **Install latest version** between performances. Updates preserve saved imports and settings. Fresh release caches bypass stale browser HTTP responses.
 
-To pin the clock to an actual font file, open **Appearance → Import exact clock font** and choose `NewYork.ttf` (or another TTF, OTF, WOFF or WOFF2 file you can use). The app decodes the file through `FontFace`, saves the original file in local IndexedDB and loads it before displaying the clock. Once imported, the clock uses that file directly rather than the browser's serif fallback, including after an offline restart. Import once per browser/device; storage is not synced. A broken replacement file does not overwrite a working one. If a saved font cannot be restored, serif performance is blocked with a visible recovery message rather than silently switching to a lookalike. **Use device font instead** removes the saved font.
+## iPhone fullscreen limit
 
-Apple's guidance says not to bundle its system fonts, including New York, in distributed apps: https://developer.apple.com/documentation/technologyoverviews/fonts . The public repository therefore contains the font loader, not Apple's font binaries. Font imports never leave the device. On a Mac the system font can be found at `/System/Library/Fonts/NewYork.ttf`; transfer the file privately to your phone and select it in the importer.
+An iPhone PWA can still show iOS's actual status-bar time and reserve screen space. CSS cannot cover a system bar outside the web view. The website does not claim to hide it. See [WebKit's fullscreen status-bar issue](https://bugs.webkit.org/show_bug.cgi?id=301994).
 
-For visual checking, open `qa/reference.html` in Safari. It uses the same stylesheet and clock renderer as the real app, fixed to the screenshot's 16:52 and Wednesday, 21 October. Its `?pixel` mode renders a 585 CSS-pixel-wide reference, matching the original image width on a 2× Mac display. Final device verification still matters: iOS font versions, display scaling and the native status/home bars are outside this web app's control.
+For native status-bar control, the [iOS container](ios/README.md) bundles this same website and settings offline and places its web view against the physical screen edges. It requests a hidden status bar and automatic home-indicator hiding through UIKit. It needs full Xcode, device signing and device testing. Only Swift syntax and project metadata could be checked on the current Mac, which has Command Line Tools but no selected full Xcode/iOS SDK. The native app has not been built or installed on a phone.
 
-## Offline
+## Exact font files
 
-The service worker precaches every runtime asset, including the default background and icons. After the first successful online load the app can reopen offline. Browser storage can be cleared or evicted; check the ready message before performing. Updates wait for existing app windows to close, so they do not replace assets mid-performance. Bump the cache version in `sw.js` whenever runtime files change.
+The reference serif requests Apple's native New York in Safari. To pin a file across browsers, choose **Appearance → Import exact clock font** and select `NewYork.ttf` or a usable TTF/OTF/WOFF/WOFF2 file. The actual file is decoded and saved locally, loaded before performance, and restored offline. Invalid replacements keep the old saved font. Failure to restore a saved font blocks serif performance with a recovery message rather than silently substituting another font.
 
-If a browser keeps opening an older cached version, open `update.html` and select **Install latest version** between performances. This explicitly checks for an update and activates it without clearing IndexedDB or saved settings.
+Apple's [font guidance](https://developer.apple.com/documentation/technologyoverviews/fonts) says not to bundle system fonts, including New York, in distributed apps. Font binaries are not in this public repository. On a Mac, the system file is `/System/Library/Fonts/NewYork.ttf`; transfer it privately to the phone and import it there. Native viewer and Safari storage are separate.
 
-## Development
+## Development and publishing
 
-No installation or build step:
+No package installation or build is required for the website:
 
 ```sh
 npm start
 npm test
 ```
 
-Open http://127.0.0.1:8765. Service workers require HTTPS or localhost. Clear the site's service worker/cache during local development to see asset changes immediately.
+Open http://127.0.0.1:8765. `qa/reference.html` uses the current overlay markup and stylesheet at a fixed reference time for visual checks. Service workers require localhost or HTTPS. Bump the cache version in `sw.js` after runtime changes.
 
-## GitHub Pages
-
-All URLs are relative and work under a repository subpath. In repository **Settings → Pages**, set the source to **GitHub Actions**. The included workflow deploys on pushes to `main` or manual dispatch. Only this directory belongs in the deployment repository; do not publish the surrounding workspace.
+GitHub Pages uses the included Actions workflow on `main`. All runtime URLs are relative. Only this project directory belongs in the deployment repository. The iOS project bundles web resources through `python3 ios/prepare_web.py`; generated `ios/Web` files are ignored by Git.

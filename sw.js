@@ -1,6 +1,6 @@
 const PREFIX = `lock-clock:${self.registration.scope}:`;
-const CACHE = `${PREFIX}v5`;
-const FILES = ['./','./index.html','./update.html','./style.css','./lock-screen.css','./app.js','./clock.js','./clock-display.js','./local-assets.js','./local-font.js','./manifest.webmanifest','./assets/reference-lock.jpg','./assets/lock-background.png','./assets/clock-repair-mask.svg','./assets/icon.svg','./assets/icon-192.png','./assets/icon-512.png'];
+const CACHE = `${PREFIX}v6`;
+const FILES = ['./','./index.html','./update.html','./style.css','./lock-screen.css','./app.js','./clock.js','./clock-display.js','./local-assets.js','./local-font.js','./manifest.webmanifest','./assets/mountain-wallpaper.png','./assets/icon.svg','./assets/icon-192.png','./assets/icon-512.png'];
 // A new offline cache must not be populated from an older browser HTTP cache.
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES.map(path => new Request(new URL(path, self.location.href), { cache: 'reload' }))))));
 self.addEventListener('message', event => { if (event.data?.type === 'ACTIVATE_UPDATE') self.skipWaiting(); });
