@@ -96,11 +96,17 @@ for (const [id,key] of [['position','position'],['size','size'],['date-position'
   appearance[key] = event.target.type === 'checkbox' ? event.target.checked : event.target.type === 'range' ? Number(event.target.value) : event.target.value;
   saveAppearance(); applyAppearance();
 });
-for (const [id,key,min,max] of [['delay-seconds','delaySeconds',0,120],['rewind-seconds','rewindSeconds',0.5,30]]) $(id).addEventListener('change', event => {
-  const value = event.target.valueAsNumber;
-  if (Number.isFinite(value)) appearance[key] = Math.max(min, Math.min(max,value));
-  saveAppearance(); applyAppearance();
-});
+for (const [id,key,min,max] of [['delay-seconds','delaySeconds',0,120],['rewind-seconds','rewindSeconds',0.5,30]]) {
+  const saveTiming = event => {
+    const value = event.target.valueAsNumber;
+    if (Number.isFinite(value)) {
+      appearance[key] = Math.max(min, Math.min(max,value));
+      saveAppearance();
+    }
+  };
+  $(id).addEventListener('input', saveTiming);
+  $(id).addEventListener('change', event => { saveTiming(event); applyAppearance(); });
+}
 $('wallpaper-fit').addEventListener('change', event => {
   appearance.wallpaperFit = event.target.value;
   saveAppearance(); applyAppearance();
