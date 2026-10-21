@@ -16,8 +16,8 @@
 </head>
 <body>
   <main id="setup" class="setup">
-    <header><span class="brand">◷ CLOCK</span><button id="settings-toggle" class="subtle" aria-expanded="false">Appearance</button></header>
-    <section class="intro"><p class="eyebrow">SET THE CLOCK</p><h1>Minutes<br>ahead.</h1><p>Choose 1–9. Tap the lock screen to return to real time.</p></section>
+    <header><span class="brand">◷ CLOCK</span><button id="settings-toggle" class="subtle" aria-expanded="false">Settings</button></header>
+    <section class="intro"><p class="eyebrow">SET THE CLOCK</p><h1>Minutes<br>ahead.</h1><p>Choose 1–9. Tap the lock screen to start the delayed rewind.</p></section>
     <section class="entry" aria-label="Time offset">
       <div class="selection"><output id="digit" aria-live="polite">—</output><span>minutes ahead</span></div>
       <div class="keypad" aria-label="Choose one digit from 1 to 9">
@@ -27,14 +27,20 @@
       </div>
       <button id="perform" class="primary" disabled>Show lock screen <span>↗</span></button>
     </section>
-    <footer><span id="offline-status" role="status">Preparing offline mode…</span><p>Tap once to jump back to real time.<br>Hold for 1 second to return to the keypad.</p><p id="ios-status-note" hidden>iOS can keep its real system clock visible above a web app. A native fullscreen viewer is needed to hide it reliably.</p><a class="subtle" href="./update.html">Check for updates</a></footer>
+    <footer><span id="offline-status" role="status">Preparing offline mode…</span><p>Tap once: wait, then rewind to real time.<br>Hold for 1 second to return to the keypad.</p><p id="ios-status-note" hidden>iOS can keep its real system clock visible above a web app. A native fullscreen viewer is needed to hide it reliably.</p><a class="subtle" href="./update.html">Check for updates</a></footer>
     <section id="settings" class="settings" hidden aria-label="Appearance settings">
-      <div class="settings-title"><h2>Make it yours.</h2><button id="close-settings" class="subtle">Done</button></div>
+      <div class="settings-title"><h2>Settings</h2><button id="close-settings" class="subtle">Done</button></div>
+      <h3>Time travel</h3>
+      <label>Delay after tap (seconds)<input id="delay-seconds" type="number" min="0" max="120" step="0.1" inputmode="decimal"></label>
+      <label>Rewind duration (seconds)<input id="rewind-seconds" type="number" min="0.5" max="30" step="0.1" inputmode="decimal"></label>
+      <p>After the delay, the displayed time counts backward over this duration until it reaches the current real time.</p>
+      <h3>Wallpaper</h3>
       <p>Choose your wallpaper. The clock, date and bottom controls are drawn separately. Your photo stays on this device.</p>
       <label class="file-label">Choose wallpaper<input id="background-file" type="file" accept="image/*"></label>
       <p id="image-status" role="status"></p>
       <div class="wallpaper-preview"><img id="wallpaper-preview" src="./assets/mountain-wallpaper.png" alt="Selected wallpaper"></div>
       <button id="default-background" class="subtle">Use mountain wallpaper</button>
+      <label>Wallpaper fit<select id="wallpaper-fit"><option value="fill">Full image, edge to edge</option><option value="cover">Fill with cropping, aligned to top</option><option value="contain">Whole image with borders</option></select></label>
       <button id="reset-reference" class="subtle">Restore reference typography</button>
       <label>Clock position <output id="position-value"></output><input id="position" type="range" min="3" max="65" step="0.1"></label>
       <label>Clock size <output id="size-value"></output><input id="size" type="range" min="12" max="34" step="0.1"></label>

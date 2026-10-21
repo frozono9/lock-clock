@@ -1,9 +1,9 @@
-import { shiftedDate, clockText, dateText } from './clock.js';
+import { travelFrame, clockText, dateText } from './clock.js';
 import { renderClock } from './clock-display.js';
 import { storedAsset } from './local-assets.js';
 import { restoreFont, importFont, removeFont } from './local-font.js';
 const $ = id => document.getElementById(id);
-const defaults = { version: 2, position: 13.584518, size: 25.641026, datePosition: 10.505529, font: 'serif', colour: '#ffffff', showDate: true, hour12: false };
+const defaults = { version: 2, position: 13.584518, size: 25.641026, datePosition: 10.505529, font: 'serif', colour: '#ffffff', showDate: true, hour12: false, delaySeconds: 3, rewindSeconds: 4, wallpaperFit: 'fill' };
 let appearance = { ...defaults };
 try {
   const saved = JSON.parse(localStorage.getItem('clock-appearance') || '{}');
@@ -15,7 +15,13 @@ try {
   }
   appearance = { ...defaults, ...saved, version: defaults.version };
 } catch {}
+for (const [key, min, max] of [['delaySeconds',0,120],['rewindSeconds',0.5,30]]) {
+  const value = Number(appearance[key]);
+  appearance[key] = Number.isFinite(value) ? Math.max(min,Math.min(max,value)) : defaults[key];
+}
+if (!['fill','cover','contain'].includes(appearance.wallpaperFit)) appearance.wallpaperFit = 'fill';
 let digit = null, activeDigit = 0, showing = false, timer, holdTimer, press, wakeLock, customURL;
+let triggeredAt = null, travelTiming = { delaySeconds: 3, rewindSeconds: 4 };
 const scene = $('scene');
 let fontRestoreFailed = false;
 function saveAppearance() { try { localStorage.setItem('clock-appearance', JSON.stringify(appearance)); } catch { $('image-status').textContent = 'Settings could not be saved on this device.'; } }
@@ -24,6 +30,10 @@ function applyAppearance() {
   scene.style.setProperty('--clock-size', `${appearance.size}cqw`);
   scene.style.setProperty('--date-top', `${appearance.datePosition}%`);
   scene.style.setProperty('--clock-colour', appearance.colour);
+  scene.style.setProperty('--wallpaper-fit', appearance.wallpaperFit);
+  $('wallpaper-fit').value = appearance.wallpaperFit;
+  $('delay-seconds').value = appearance.delaySeconds;
+  $('rewind-seconds').value = appearance.rewindSeconds;
   scene.dataset.font = appearance.font;
   $('lock-date').hidden = !appearance.showDate;
   for (const [id, key] of [['position','position'],['size','size'],['date-position','datePosition']]) {
@@ -34,9 +44,12 @@ function applyAppearance() {
   $('show-date').checked = appearance.showDate; $('hour12').checked = appearance.hour12;
 }
 function render() {
-  const date = shiftedDate(Date.now(), activeDigit);
-  renderClock($('lock-time'), clockText(date, appearance.hour12));
-  $('lock-date').textContent = dateText(date);
+  const elapsed = triggeredAt === null ? null : performance.now() - triggeredAt;
+  const frame = travelFrame(Date.now(), activeDigit, elapsed, travelTiming.delaySeconds, travelTiming.rewindSeconds);
+  if (scene.dataset.phase !== frame.phase) scene.dataset.phase = frame.phase;
+  renderClock($('lock-time'), clockText(frame.date, appearance.hour12));
+  const date = dateText(frame.date);
+  if ($('lock-date').textContent !== date) $('lock-date').textContent = date;
 }
 async function keepAwake() { if (showing && !document.hidden) { try { wakeLock = await navigator.wakeLock?.request('screen'); } catch {} } }
 async function start(value) {
@@ -55,15 +68,17 @@ async function start(value) {
   await Promise.all([...scene.querySelectorAll('img')].map(img => img.decode().catch(() => {})));
   await document.fonts.ready;
   activeDigit = value; showing = true;
+  triggeredAt = null;
+  travelTiming = { delaySeconds: appearance.delaySeconds, rewindSeconds: appearance.rewindSeconds };
   press = null;
   scene.dataset.phase = value > 0 ? 'ahead' : 'preview';
   $('settings').hidden = true; $('settings-toggle').setAttribute('aria-expanded', 'false');
   $('setup').hidden = true; $('lock-screen').hidden = false;
-  applyAppearance(); render(); clearInterval(timer); timer = setInterval(render, 200);
+  applyAppearance(); render(); clearInterval(timer); timer = setInterval(render, 50);
   keepAwake();
 }
 function stop() {
-  showing = false; press = null; clearInterval(timer); clearTimeout(holdTimer);
+  showing = false; press = null; triggeredAt = null; clearInterval(timer); clearTimeout(holdTimer);
   $('setup').hidden = false; $('lock-screen').hidden = true;
   wakeLock?.release().catch(() => {}); wakeLock = null;
   if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
@@ -79,6 +94,15 @@ $('settings-toggle').addEventListener('click', () => { $('settings').hidden = fa
 $('close-settings').addEventListener('click', () => { $('settings').hidden = true; $('settings-toggle').setAttribute('aria-expanded','false'); $('settings-toggle').focus(); });
 for (const [id,key] of [['position','position'],['size','size'],['date-position','datePosition'],['font','font'],['colour','colour'],['show-date','showDate'],['hour12','hour12']]) $(id).addEventListener('input', event => {
   appearance[key] = event.target.type === 'checkbox' ? event.target.checked : event.target.type === 'range' ? Number(event.target.value) : event.target.value;
+  saveAppearance(); applyAppearance();
+});
+for (const [id,key,min,max] of [['delay-seconds','delaySeconds',0,120],['rewind-seconds','rewindSeconds',0.5,30]]) $(id).addEventListener('change', event => {
+  const value = event.target.valueAsNumber;
+  if (Number.isFinite(value)) appearance[key] = Math.max(min, Math.min(max,value));
+  saveAppearance(); applyAppearance();
+});
+$('wallpaper-fit').addEventListener('change', event => {
+  appearance.wallpaperFit = event.target.value;
   saveAppearance(); applyAppearance();
 });
 function imageStore(mode, value) { return storedAsset('wallpaper', mode, value); }
@@ -98,7 +122,10 @@ $('background-file').addEventListener('change', async event => {
 $('default-background').addEventListener('click', async () => {
   try { await imageStore('delete'); if (customURL) URL.revokeObjectURL(customURL); customURL = null; $('wallpaper').src = './assets/mountain-wallpaper.png'; $('wallpaper-preview').src = './assets/mountain-wallpaper.png'; $('image-status').textContent = 'Mountain wallpaper restored.'; } catch { $('image-status').textContent = 'Could not reset stored wallpaper.'; }
 });
-$('reset-reference').addEventListener('click', () => { appearance = { ...defaults }; saveAppearance(); applyAppearance(); $('image-status').textContent = 'Reference typography restored.'; });
+$('reset-reference').addEventListener('click', () => {
+  for (const key of ['position','size','datePosition','font','colour','showDate','hour12']) appearance[key] = defaults[key];
+  saveAppearance(); applyAppearance(); $('image-status').textContent = 'Reference typography restored.';
+});
 $('font-file').addEventListener('change', async event => {
   const file = event.target.files[0];
   if (!file) return;
@@ -139,10 +166,9 @@ $('lock-screen').addEventListener('pointerup', event => {
   const released = press;
   press = null;
   if (!showing || !released || released.id !== event.pointerId || released.moved || performance.now() - released.started > 600) return;
-  // One trigger per presentation: start ahead, then jump back to real time.
-  if (activeDigit > 0) {
-    activeDigit = 0;
-    scene.dataset.phase = 'real';
+  // One trigger per presentation. Further taps cannot restart the delay/rewind.
+  if (activeDigit > 0 && triggeredAt === null) {
+    triggeredAt = performance.now();
     render();
   }
 });
