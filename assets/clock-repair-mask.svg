@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1170 2532">
+  <defs><filter id="feather" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+  <g fill="white" filter="url(#feather)">
+    <rect x="219" y="255" width="734" height="102" rx="10"/>
+    <rect x="234" y="363" width="698" height="263" rx="10"/>
+  </g>
+</svg>

@@ -1,8 +1,18 @@
 import { shiftedDate, clockText, dateText } from './clock.js';
+import { renderClock } from './clock-display.js';
 const $ = id => document.getElementById(id);
-const defaults = { position: 13.7, size: 26, datePosition: 10.5, font: 'serif', colour: '#ffffff', showDate: true, hour12: false };
+const defaults = { version: 2, position: 13.584518, size: 25.641026, datePosition: 10.505529, font: 'serif', colour: '#ffffff', showDate: true, hour12: false };
 let appearance = { ...defaults };
-try { appearance = { ...defaults, ...JSON.parse(localStorage.getItem('clock-appearance') || '{}') }; } catch {}
+try {
+  const saved = JSON.parse(localStorage.getItem('clock-appearance') || '{}');
+  // Upgrade unchanged v1 defaults while preserving deliberately adjusted values.
+  if (saved.version !== defaults.version) {
+    for (const [key, oldValue] of Object.entries({ position: 13.7, size: 26, datePosition: 10.5 })) {
+      if (saved[key] === oldValue) delete saved[key];
+    }
+  }
+  appearance = { ...defaults, ...saved, version: defaults.version };
+} catch {}
 let digit = null, direction = 1, activeDigit = 0, showing = false, timer, holdTimer, holdPoint, wakeLock, customURL;
 const scene = $('scene');
 function saveAppearance() { try { localStorage.setItem('clock-appearance', JSON.stringify(appearance)); } catch { $('image-status').textContent = 'Settings could not be saved on this device.'; } }
@@ -15,24 +25,28 @@ function applyAppearance() {
   $('lock-date').hidden = !appearance.showDate;
   for (const [id, key] of [['position','position'],['size','size'],['date-position','datePosition']]) {
     $(id).value = appearance[key];
-    $(`${id}-value`).value = `${appearance[key]}${id === 'size' ? '%' : '%'}`;
+    $(`${id}-value`).value = `${Number(appearance[key]).toFixed(2)}%`;
   }
   $('font').value = appearance.font; $('colour').value = appearance.colour;
   $('show-date').checked = appearance.showDate; $('hour12').checked = appearance.hour12;
 }
 function render() {
   const date = shiftedDate(Date.now(), activeDigit, direction);
-  $('lock-time').textContent = clockText(date, appearance.hour12);
+  renderClock($('lock-time'), clockText(date, appearance.hour12));
   $('lock-date').textContent = dateText(date);
 }
 async function keepAwake() { if (showing && !document.hidden) { try { wakeLock = await navigator.wakeLock?.request('screen'); } catch {} } }
-function start(value) {
+async function start(value) {
+  // The fullscreen request must occur synchronously inside the tap gesture.
+  if (!matchMedia('(display-mode: standalone)').matches && !document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
+  // Do not expose the original screenshot's old text while its repair is loading.
+  await backgroundReady;
+  await Promise.all([...scene.querySelectorAll('img')].map(img => img.decode().catch(() => {})));
+  await document.fonts.ready;
   activeDigit = value; showing = true;
   $('settings').hidden = true; $('settings-toggle').setAttribute('aria-expanded', 'false');
   $('setup').hidden = true; $('lock-screen').hidden = false;
   applyAppearance(); render(); clearInterval(timer); timer = setInterval(render, 200);
-  // Safari installed web apps use standalone mode; other browsers can enter fullscreen here.
-  if (!matchMedia('(display-mode: standalone)').matches && !document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
   keepAwake();
 }
 function stop() {
@@ -71,6 +85,7 @@ async function useImage(blob) {
   try { probe.src = url; await probe.decode(); } catch { URL.revokeObjectURL(url); throw new Error('Cannot read this image. Try a JPEG or PNG.'); }
   if (customURL) URL.revokeObjectURL(customURL); customURL = url;
   $('wallpaper').src = url;
+  scene.dataset.customBackground = '';
   const ratio = probe.naturalWidth / probe.naturalHeight;
   scene.style.width = `max(100vw, ${ratio * 100}dvh)`;
   scene.style.height = `max(100dvh, ${100 / ratio}vw)`;
@@ -81,8 +96,9 @@ $('background-file').addEventListener('change', async event => {
   catch (error) { $('image-status').textContent = error.message || 'Could not save background.'; }
 });
 $('default-background').addEventListener('click', async () => {
-  try { await imageStore('delete'); if (customURL) URL.revokeObjectURL(customURL); customURL = null; $('wallpaper').src = './assets/lock-background.png'; scene.style.width = ''; scene.style.height = ''; $('image-status').textContent = 'Included lock screen restored.'; } catch { $('image-status').textContent = 'Could not reset stored background.'; }
+  try { await imageStore('delete'); if (customURL) URL.revokeObjectURL(customURL); customURL = null; $('wallpaper').src = './assets/reference-lock.jpg'; delete scene.dataset.customBackground; scene.style.width = ''; scene.style.height = ''; $('image-status').textContent = 'Included lock screen restored.'; } catch { $('image-status').textContent = 'Could not reset stored background.'; }
 });
+$('reset-reference').addEventListener('click', () => { appearance = { ...defaults }; saveAppearance(); applyAppearance(); $('image-status').textContent = 'Reference typography restored.'; });
 $('lock-screen').addEventListener('pointerdown', event => { if (!event.isPrimary) return; holdPoint = [event.clientX,event.clientY]; clearTimeout(holdTimer); holdTimer = setTimeout(stop, 1000); });
 $('lock-screen').addEventListener('pointermove', event => { if (holdPoint && Math.hypot(event.clientX - holdPoint[0], event.clientY - holdPoint[1]) > 15) clearTimeout(holdTimer); });
 for (const name of ['pointerup','pointercancel','contextmenu']) $('lock-screen').addEventListener(name, event => { clearTimeout(holdTimer); if (name === 'contextmenu') event.preventDefault(); });
@@ -94,7 +110,7 @@ document.addEventListener('keydown', event => {
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && showing) { render(); keepAwake(); } });
 applyAppearance();
-imageStore('get').then(blob => { if (blob) return useImage(blob); }).catch(() => {});
+const backgroundReady = imageStore('get').then(blob => { if (blob) return useImage(blob); }).catch(() => {});
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').then(() => navigator.serviceWorker.ready).then(() => { $('offline-status').textContent = 'Ready offline · saved on this device'; }).catch(() => { $('offline-status').textContent = 'Offline setup failed. Reopen online to retry.'; });
 } else $('offline-status').textContent = 'Offline mode requires HTTPS or localhost.';

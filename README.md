@@ -10,6 +10,14 @@ Choose a digit, then **Show lock screen**. Hold anywhere still for one second to
 
 **Appearance** lets you import a JPEG/PNG or other browser-supported image, adjust clock/date position, font, text colour and size, and choose 12/24 hours. Imports are stored in local IndexedDB; appearance uses localStorage. Nothing is uploaded. Remove the old clock and date from screenshots before importing; this app does not automatically inpaint new screenshots. The included background is an edited copy of the supplied reference, with its original date and clock removed. Its carrier, battery, weather, and decorative buttons are static image details.
 
+### Reference accuracy
+
+The default background now uses the original 1170 × 2532 JPEG directly. Only the date/clock regions receive a feathered repair layer; the mountain, widgets, status icons and bottom controls come from the original screenshot. A custom background hides that repair layer.
+
+The serif clock requests Apple's native New York via `ui-serif`, using calibrated optical size, weight, proportional lining figures, separate hour/minute spacing and the centered-colon alternate (`ss01`). The live date uses the system sans face. No Apple font files are redistributed. The reference profile is calibrated for Safari on Apple platforms; Chromium and other platforms may select a different fallback. Existing unchanged v1 defaults migrate automatically; **Restore reference typography** also restores the measured profile.
+
+For visual checking, open `qa/reference.html` in Safari. It uses the same stylesheet and clock renderer as the real app, fixed to the screenshot's 16:52 and Wednesday, 21 October. Its `?pixel` mode renders a 585 CSS-pixel-wide reference, matching the original image width on a 2× Mac display. Final device verification still matters: iOS font versions, display scaling and the native status/home bars are outside this web app's control.
+
 ## Offline
 
 The service worker precaches every runtime asset, including the default background and icons. After the first successful online load the app can reopen offline. Browser storage can be cleared or evicted; check the ready message before performing. Updates wait for existing app windows to close, so they do not replace assets mid-performance. Bump the cache version in `sw.js` whenever runtime files change.

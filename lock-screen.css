@@ -1,0 +1,112 @@
+/* Reference coordinates are measured in the supplied 1170 × 2532 screenshot.
+   The scene scales as one unit; browser safe-area padding must not move its layers. */
+#lock-screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.scene {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100vw, calc(100dvh * 1170 / 2532));
+  height: max(100dvh, calc(100vw * 2532 / 1170));
+  transform: translate(-50%, -50%);
+  container-type: inline-size;
+}
+
+.scene img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+/* Preserve the actual screenshot everywhere except the two obsolete text areas.
+   The reconstruction is feathered inside those regions to avoid hard seams. */
+.scene .clock-repair {
+  mask-image: url('./assets/clock-repair-mask.svg');
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-image: url('./assets/clock-repair-mask.svg');
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+}
+
+.scene[data-custom-background] .clock-repair {
+  display: none;
+}
+
+.scene p {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  color: var(--clock-colour, #fff);
+  margin: 0;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: none;
+  -webkit-text-size-adjust: none;
+}
+
+.lock-date {
+  top: var(--date-top, 10.505529%);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 5.641026cqw;
+  font-weight: 535;
+  font-optical-sizing: none;
+  font-variation-settings: 'opsz' 28;
+  line-height: 1;
+  letter-spacing: -.005cqw;
+}
+
+.lock-time {
+  top: var(--clock-top, 13.584518%);
+  /* ui-serif resolves to Apple's New York, without redistributing a system font. */
+  font-family: ui-serif, -apple-system-ui-serif, Georgia, serif;
+  font-size: var(--clock-size, 25.641026cqw);
+  font-weight: 560;
+  font-optical-sizing: none;
+  font-variation-settings: 'opsz' 72;
+  font-variant-numeric: lining-nums proportional-nums;
+  font-feature-settings: 'tnum' 0, 'onum' 0;
+  line-height: 1;
+  letter-spacing: -.2cqw;
+}
+
+.time-digits {
+  display: inline-flex;
+  gap: .55cqw;
+  transform: translateX(-.3cqw);
+}
+
+.time-minutes {
+  letter-spacing: .35cqw;
+}
+
+.time-colon {
+  /* New York's centered colon is contextual inside an unsplit time string.
+     Keep that alternate when the hours/minutes are spaced independently. */
+  font-feature-settings: 'ss01' 1;
+}
+
+.scene[data-font=sans] .lock-time,
+.scene[data-font=thin] .lock-time {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 500;
+  font-variation-settings: normal;
+  font-optical-sizing: auto;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.scene[data-font=thin] .lock-time {
+  font-weight: 200;
+}
